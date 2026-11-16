@@ -1,0 +1,79 @@
+name: Build unsigned iOS IPA
+
+# 免苹果账号的「未签名真机 .ipa」云构建：
+# macOS runner 上 expo prebuild + pod install + xcodebuild archive（关签名），
+# 产物 Payload 未签名 ipa，用爱思助手/Sideloadly 用 Apple ID 自签后即可装 iPhone（7 天有效）。
+
+on:
+  workflow_dispatch: {}   # 手动触发（改 API_BASE 后可随时重跑）
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-14
+    env:
+      # 打进 App 的后端地址（Cloudflare 快速隧道，重启隧道会换域名，改这里再触发一次构建即可）
+      API_BASE_URL: https://royalty-demographic-rapid-second.trycloudflare.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Patch API_BASE into src/api.ts
+        run: |
+          sed -i '' "s|export const API_BASE = '[^']*';|export const API_BASE = '${API_BASE_URL}';|" src/api.ts
+          grep -n "export const API_BASE" src/api.ts
+
+      - name: Select Xcode 15.x (RN 0.73 兼容)
+        run: |
+          ls /Applications | grep Xcode || true
+          if [ -d "/Applications/Xcode_15.4.app" ]; then sudo xcode-select -s "/Applications/Xcode_15.4.app"
+          elif [ -d "/Applications/Xcode_15.2.app" ]; then sudo xcode-select -s "/Applications/Xcode_15.2.app"
+          else echo "未找到 15.x，使用默认：$(xcodebuild -version)"; fi
+          xcodebuild -version
+
+      - name: Install JS deps
+        run: npm ci
+
+      - name: Expo prebuild (iOS, 生成 ios/ 工程)
+        run: npx expo prebuild -p ios --no-install
+        env:
+          EXPO_NO_TELEMETRY: '1'
+          CI: '1'
+
+      - name: CocoaPods install
+        run: |
+          cd ios
+          pod install --repo-update
+
+      - name: Archive (unsigned, real-device slice)
+        run: |
+          WS=$(ls ios/*.xcworkspace | head -n 1)
+          SCHEME=$(basename "$WS" .xcworkspace)
+          echo "workspace=$WS scheme=$SCHEME"
+          cd ios
+          xcodebuild -workspace "$(basename "$WS")" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath ../build/EdenDrama.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            | tail -n 60
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir Payload
+          cp -R build/EdenDrama.xcarchive/Products/Applications/*.app Payload/
+          zip -qry edendrama-ios-unsigned.ipa Payload
+          ls -lh edendrama-ios-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: edendrama-ios-unsigned-ipa
+          path: edendrama-ios-unsigned.ipa
+          if-no-files-found: error

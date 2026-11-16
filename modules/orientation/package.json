@@ -1,0 +1,9 @@
+{
+  "name": "expo-orientation-module",
+  "version": "1.0.0",
+  "description": "iOS 横屏/竖屏锁定原生模块（与安卓 OrientationModule 对等）",
+  "main": "src/index.ts",
+  "expo": {
+    "platforms": ["ios"]
+  }
+}

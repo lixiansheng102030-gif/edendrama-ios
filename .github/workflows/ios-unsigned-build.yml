@@ -5,7 +5,16 @@ name: Build unsigned iOS IPA
 # 产物 Payload 未签名 ipa，用爱思助手/Sideloadly 用 Apple ID 自签后即可装 iPhone（7 天有效）。
 
 on:
-  workflow_dispatch: {}   # 手动触发（改 API_BASE 后可随时重跑）
+  workflow_dispatch:
+    inputs:
+      api_base:
+        description: '后端地址（如 http://1.2.3.4:3000 或 https://abc.trycloudflare.com）；留空用默认值'
+        required: false
+        default: ''
+      platform:
+        description: '目标平台标记（仅用于产物命名）'
+        required: false
+        default: 'ios'
   push:
     branches: [main]
 
@@ -13,8 +22,8 @@ jobs:
   build:
     runs-on: macos-14
     env:
-      # 打进 App 的后端地址（Cloudflare 快速隧道，重启隧道会换域名，改这里再触发一次构建即可）
-      API_BASE_URL: https://royalty-demographic-rapid-second.trycloudflare.com
+      # 打进 App 的后端地址：优先取手动触发时传的 api_base，否则用仓库变量/默认值
+      API_BASE_URL: ${{ inputs.api_base || vars.DEFAULT_API_BASE || 'https://royalty-demographic-rapid-second.trycloudflare.com' }}
     steps:
       - uses: actions/checkout@v4
 

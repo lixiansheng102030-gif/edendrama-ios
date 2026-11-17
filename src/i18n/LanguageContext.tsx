@@ -3,12 +3,33 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { translations, type Lang } from './translations';
 import { settingsApi } from '../api';
 
+type LoginMethodsEnabled = {
+  account: boolean;
+  google: boolean;
+  twitter: boolean;
+  apple: boolean;
+  telegram: boolean;
+  guest: boolean;
+};
+
 type I18nContextType = {
   lang: Lang;
   setLang: (lang: Lang) => void;
   languageSwitchEnabled: boolean;
   vipScreenEnabled: boolean;
+  /** 各平台登录入口开关（后台配置）；缺键一律为 true */
+  loginMethodsEnabled: LoginMethodsEnabled;
   t: (key: string, vars?: Record<string, string | number>) => string;
+};
+
+// 取不到配置时的安全默认：全部入口可见（与 vipScreenEnabled 的约定一致）
+const DEFAULT_LOGIN_METHODS: LoginMethodsEnabled = {
+  account: true,
+  google: true,
+  twitter: true,
+  apple: true,
+  telegram: true,
+  guest: true,
 };
 
 const I18nContext = createContext<I18nContextType>({
@@ -16,6 +37,7 @@ const I18nContext = createContext<I18nContextType>({
   setLang: () => {},
   languageSwitchEnabled: true,
   vipScreenEnabled: true,
+  loginMethodsEnabled: DEFAULT_LOGIN_METHODS,
   t: (key) => key,
 });
 
@@ -32,6 +54,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>('en');
   const [languageSwitchEnabled, setLanguageSwitchEnabled] = useState<boolean>(true);
   const [vipScreenEnabled, setVipScreenEnabled] = useState<boolean>(true);
+  const [loginMethodsEnabled, setLoginMethodsEnabled] =
+    useState<LoginMethodsEnabled>(DEFAULT_LOGIN_METHODS);
 
   useEffect(() => {
     let mounted = true;
@@ -60,6 +84,18 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         setLanguageSwitchEnabled(switchEnabled);
         setVipScreenEnabled(vipEnabled);
 
+        // 各平台登录入口开关：缺键→true（老后台/未配置时保持全显示）
+        const lm: any = settings?.loginMethodsEnabled;
+        setLoginMethodsEnabled({
+          account: lm?.account === undefined ? true : lm.account === true,
+          google: lm?.google === undefined ? true : lm.google === true,
+          twitter: lm?.twitter === undefined ? true : lm.twitter === true,
+          apple: lm?.apple === undefined ? true : lm.apple === true,
+          telegram: lm?.telegram === undefined ? true : lm.telegram === true,
+          // 游客是保底出口，永远显示（后端也强制 true）
+          guest: true,
+        });
+
         if (!switchEnabled) {
           // Switching disabled -> always force the configured default language.
           setLangState(defaultLang);
@@ -78,6 +114,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         if (!mounted) return;
         setLangState(fallbackLang);
         memoryFallback = fallbackLang;
+        // 配置读取失败时登录入口一律显示，避免把用户挡在门外
+        setLoginMethodsEnabled(DEFAULT_LOGIN_METHODS);
       }
     }
 
@@ -111,7 +149,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <I18nContext.Provider value={{ lang, setLang, languageSwitchEnabled, vipScreenEnabled, t }}>
+    <I18nContext.Provider
+      value={{ lang, setLang, languageSwitchEnabled, vipScreenEnabled, loginMethodsEnabled, t }}
+    >
       {children}
     </I18nContext.Provider>
   );

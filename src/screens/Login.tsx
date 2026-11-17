@@ -51,7 +51,9 @@ const storeSession = async (data: any) => {
 };
 
 export default function Login({ navigation }: any) {
-  const { t } = useI18n();
+  const { t, loginMethodsEnabled } = useI18n();
+  // 只有第三方登录受后台开关控制；账号密码与游客是基础方式，始终显示
+  const socialKeys = SOCIAL_KEYS.filter((k) => (loginMethodsEnabled as any)[k] !== false);
   const { colors } = useTheme();
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
@@ -215,6 +217,7 @@ export default function Login({ navigation }: any) {
           </Text>
         </View>
 
+        {/* 账号密码登录 / 注册：始终显示（基础登录方式，后台不提供关闭） */}
         <TextInput
           placeholder={t('login.account')}
           placeholderTextColor={colors.subtle}
@@ -268,7 +271,9 @@ export default function Login({ navigation }: any) {
           </Text>
         </TouchableOpacity>
 
-        {/* 第三方登录方式：分隔线 + 四个入口（登录/注册模式都展示） */}
+        {/* 第三方登录方式：分隔线 + 各入口（登录/注册模式都展示）；全部关闭时整块不渲染 */}
+        {socialKeys.length > 0 && (
+          <>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 24, marginBottom: 12 }}>
           <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
           <Text style={{ color: colors.subtle, fontSize: 12, marginHorizontal: 10 }}>
@@ -279,7 +284,7 @@ export default function Login({ navigation }: any) {
 
         {/* 第三方登录方式：纯文字、每排显示一个（登录/注册模式都展示） */}
         <View style={{ marginTop: 4 }}>
-          {SOCIAL_KEYS.map((key) => {
+          {socialKeys.map((key) => {
             // Google 正在唤起授权时给一个加载反馈，避免看起来像没反应
             const loadingThis = key === 'google' && googleLoading;
             return (
@@ -308,8 +313,10 @@ export default function Login({ navigation }: any) {
             );
           })}
         </View>
+          </>
+        )}
 
-        {/* 游客浏览 */}
+        {/* 游客浏览：保底出口，始终显示（不接后台开关） */}
         <TouchableOpacity
           onPress={async () => {
             await AsyncStorage.setItem('guest_mode', '1');

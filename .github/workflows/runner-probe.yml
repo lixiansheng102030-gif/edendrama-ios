@@ -1,0 +1,26 @@
+name: Runner probe
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  xcodes:
+    runs-on: macos-latest
+    steps:
+      - name: List Xcode installations
+        run: |
+          echo "== /Applications =="
+          ls /Applications | grep -i xcode || true
+          echo "== current =="
+          xcodebuild -version || true
+          echo "== swift =="
+          swift --version || true
+  macos15:
+    runs-on: macos-15
+    steps:
+      - run: echo "macos-15 available"; xcodebuild -version || true
+  macos13:
+    runs-on: macos-13
+    steps:
+      - run: echo "macos-13 available"; xcodebuild -version || true

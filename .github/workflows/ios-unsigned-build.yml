@@ -29,8 +29,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: npm
+          node-version: 20
 
       - name: Patch API_BASE into src/api.ts
         run: |
@@ -46,7 +45,7 @@ jobs:
           xcodebuild -version
 
       - name: Install JS deps
-        run: npm ci
+        run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Expo prebuild (iOS, 生成 ios/ 工程)
         run: npx expo prebuild -p ios --no-install

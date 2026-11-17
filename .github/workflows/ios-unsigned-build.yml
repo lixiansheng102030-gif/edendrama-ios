@@ -20,7 +20,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       # 打进 App 的后端地址：优先取手动触发时传的 api_base，否则用仓库变量/默认值
       API_BASE_URL: ${{ inputs.api_base || vars.DEFAULT_API_BASE || 'https://royalty-demographic-rapid-second.trycloudflare.com' }}

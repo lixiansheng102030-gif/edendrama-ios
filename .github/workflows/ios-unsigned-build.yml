@@ -45,7 +45,7 @@ jobs:
           xcodebuild -version
 
       - name: Install JS deps
-        run: npm ci --no-audit --no-fund --legacy-peer-deps
+        run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Expo prebuild (iOS, 生成 ios/ 工程)
         run: npx expo prebuild -p ios --no-install

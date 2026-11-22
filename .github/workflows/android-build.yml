@@ -43,10 +43,12 @@ jobs:
           # Gradle 8 removed Jar.classifier and components.release: neutralize expo publishing helper
           sed -i 's/from components.release/from components.findByName("release") ?: components.findByName("java")/' "$F"
           grep -n "hasPlugin('com.android.library')" "$F" || true
-          # expo-image-loader build.gradle uses Jar.classifier (removed in Gradle 8): map to archiveClassifier
-          IL=node_modules/expo-image-loader/android/build.gradle
-          sed -i 's/classifier = /archiveClassifier = /g' "$IL" 2>/dev/null || true
-          grep -n "classifier" "$IL" || true
+          # Gradle 8 removed Jar.classifier across ALL expo modules: map to archiveClassifier globally
+          find node_modules -path '*/android/build.gradle' -type f | while read F; do
+            sed -i 's/classifier = /archiveClassifier = /g' "$F" 2>/dev/null || true
+          done
+          echo "patched classifier in all expo android build.gradle files"
+          grep -rn "classifier =" node_modules/expo-image-picker/android/build.gradle 2>/dev/null || echo "  image-picker classifier patched" 
       - name: Clean stale JS bundle
         run: rm -f android/app/src/main/assets/index.android.bundle
 

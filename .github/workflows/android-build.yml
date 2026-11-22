@@ -60,6 +60,12 @@ jobs:
           done
           echo "patched classifier in all expo android build.gradle files"
           grep -rn "classifier =" node_modules/expo-image-picker/android/build.gradle 2>/dev/null || echo "  image-picker classifier patched" 
+      - name: Align Kotlin JVM target with Java 17
+        run: |
+          cat >> android/gradle.properties <<'EOF'
+          kotlin.jvm.target=17
+          EOF
+          echo "appended kotlin.jvm.target=17"
       - name: Clean stale JS bundle
         run: rm -f android/app/src/main/assets/index.android.bundle
 

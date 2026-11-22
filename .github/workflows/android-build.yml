@@ -1,0 +1,66 @@
+name: Build Android APK (unsigned/debug)
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base:
+        description: 'Backend API base URL baked into JS bundle'
+        required: false
+        default: ''
+  push:
+    branches: [android-build]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      API_BASE_URL: ${{ inputs.api_base || vars.DEFAULT_API_BASE || 'https://8b85ad4700f5a2ce-117-136-38-184.serveousercontent.com' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Patch API_BASE into src/api.ts
+        run: |
+          sed -i "s|export const API_BASE = '[^']*';|export const API_BASE = '${{ env.API_BASE_URL }}';|" src/api.ts
+          grep -n "export const API_BASE" src/api.ts
+
+      - name: Install JS deps
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Expo prebuild (Android)
+        run: npx expo prebuild -p android --no-install
+        env:
+          EXPO_NO_TELEMETRY: '1'
+          CI: '1'
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Gradle assembleRelease
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon 2>&1 | tail -n 60
+        env:
+          CI: 'true'
+
+      - name: Verify & stage APK
+        run: |
+          APK=$(find android/app/build/outputs/apk -name '*.apk' | head -n 1)
+          echo "APK=$APK"
+          test -n "$APK" || { echo NO_APK; exit 1; }
+          cp "$APK" edendrama-android.apk
+          ls -lh edendrama-android.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: edendrama-android-apk
+          path: edendrama-android.apk
+          if-no-files-found: error

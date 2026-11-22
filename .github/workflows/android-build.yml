@@ -62,10 +62,15 @@ jobs:
           grep -rn "classifier =" node_modules/expo-image-picker/android/build.gradle 2>/dev/null || echo "  image-picker classifier patched" 
       - name: Align Kotlin JVM target with Java 17
         run: |
-          cat >> android/gradle.properties <<'EOF'
-          kotlin.jvm.target=17
+          cat >> android/build.gradle <<'EOF'
+
+          allprojects {
+            tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+              kotlinOptions.jvmTarget = "17"
+            }
+          }
           EOF
-          echo "appended kotlin.jvm.target=17"
+          tail -n 8 android/build.gradle
       - name: Clean stale JS bundle
         run: rm -f android/app/src/main/assets/index.android.bundle
 

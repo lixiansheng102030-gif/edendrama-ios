@@ -43,6 +43,10 @@ jobs:
             sed -i '/maven.aliyun.com/d' "$F"
           done
           echo "aliyun refs left:"; grep -rn "aliyun" android/*.gradle 2>/dev/null || echo none
+          # Ensure JitPack is in settings repositories (PREFER_SETTINGS mode) for CanHub image cropper
+          SG=android/settings.gradle
+          grep -q "jitpack.io" "$SG" || sed -i "/mavenCentral()/a\    maven { url 'https://jitpack.io' }" "$SG"
+          grep -n "jitpack" "$SG" || true
       - name: Patch expo-modules-core gradle plugin (Fix android() error)
         run: |
           F=node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle

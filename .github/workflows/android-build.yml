@@ -36,6 +36,13 @@ jobs:
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
 
+      - name: Remove unstable Aliyun maven mirrors (use Google/MavenCentral/JitPack)
+        run: |
+          for F in android/build.gradle android/settings.gradle android/init.gradle; do
+            [ -f "$F" ] || continue
+            sed -i '/maven.aliyun.com/d' "$F"
+          done
+          echo "aliyun refs left:"; grep -rn "aliyun" android/*.gradle 2>/dev/null || echo none
       - name: Patch expo-modules-core gradle plugin (Fix android() error)
         run: |
           F=node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle

@@ -33,8 +33,14 @@ jobs:
           grep -n "export const API_BASE" src/api.ts
 
       - name: Install JS deps
-        run: npm ci --no-audit --no-fund --legacy-peer-deps
+        run: npm install --no-audit --no-fund --legacy-peer-deps
 
+
+      - name: Patch expo-modules-core gradle plugin (Fix android() error)
+        run: |
+          F=node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle
+          sed -i "s/project.plugins.hasPlugin('kotlin-android')/project.plugins.hasPlugin('com.android.library')/" "$F"
+          grep -n "hasPlugin('com.android.library')" "$F" || true
       - name: Clean stale JS bundle
         run: rm -f android/app/src/main/assets/index.android.bundle
 

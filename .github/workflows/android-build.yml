@@ -40,7 +40,13 @@ jobs:
         run: |
           F=node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle
           sed -i "s/project.plugins.hasPlugin('kotlin-android')/project.plugins.hasPlugin('com.android.library')/" "$F"
+          # Gradle 8 removed Jar.classifier and components.release: neutralize expo publishing helper
+          sed -i 's/from components.release/from components.findByName("release") ?: components.findByName("java")/' "$F"
           grep -n "hasPlugin('com.android.library')" "$F" || true
+          # expo-image-loader build.gradle uses Jar.classifier (removed in Gradle 8): map to archiveClassifier
+          IL=node_modules/expo-image-loader/android/build.gradle
+          sed -i 's/classifier = /archiveClassifier = /g' "$IL" 2>/dev/null || true
+          grep -n "classifier" "$IL" || true
       - name: Clean stale JS bundle
         run: rm -f android/app/src/main/assets/index.android.bundle
 

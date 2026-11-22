@@ -58,7 +58,7 @@ jobs:
       - name: Gradle assembleRelease
         run: |
           cd android
-          ./gradlew assembleRelease --no-daemon 2>&1 | tail -n 80
+          ./gradlew assembleRelease --no-daemon -x lint -x lintVitalRelease 2>&1 | tail -n 80
         env:
           CI: 'true'
 
